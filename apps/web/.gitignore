@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+.env*.local
+*.tsbuildinfo
+
+# 由 scripts/sync-fixtures.mjs 从 docs/samples 复制而来，不入库以免两份数据漂移
+public/samples/
+
+# 由 pnpm run types 从 ../docs/report.schema.json 生成，不入库以免与 schema 漂移
+src/types/report.ts

@@ -1,0 +1,373 @@
+{
+  "$defs": {
+    "Claim": {
+      "description": "A single attributable statement. The atom of the whole report.",
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "description": "At least one. No exceptions.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": "medium",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "source_ids"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "MetricPoint": {
+      "properties": {
+        "period": {
+          "description": "Fiscal period label, e.g. 'FY2025Q2' or 'FY2024'",
+          "title": "Period",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None means not reported",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "period"
+      ],
+      "title": "MetricPoint",
+      "type": "object"
+    },
+    "MetricSeries": {
+      "description": "A financial time series, computed in Python — never estimated by the model.",
+      "properties": {
+        "key": {
+          "description": "Stable machine key, e.g. 'revenue', 'gross_margin'",
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "USD",
+            "USD_millions",
+            "percent",
+            "ratio",
+            "shares"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MetricPoint"
+          },
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "points",
+        "source_ids"
+      ],
+      "title": "MetricSeries",
+      "type": "object"
+    },
+    "ReportMeta": {
+      "description": "Run telemetry. Surfaced in the UI footer and consumed by the eval suite.",
+      "properties": {
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "tool_calls": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Calls"
+        },
+        "research_iterations": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Research Iterations"
+        }
+      },
+      "title": "ReportMeta",
+      "type": "object"
+    },
+    "Section": {
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/SectionKind"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricSeries"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "narrative_md": {
+          "default": "",
+          "description": "Optional prose tying the claims together. Any factual statement here must also appear as a Claim — the UI renders citations from claims.",
+          "title": "Narrative Md",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "title"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
+    "SectionKind": {
+      "description": "The fixed report skeleton. See docs/design.md section 1.2.",
+      "enum": [
+        "summary",
+        "business",
+        "financials",
+        "valuation",
+        "catalysts",
+        "bull_bear",
+        "risks"
+      ],
+      "title": "SectionKind",
+      "type": "string"
+    },
+    "Source": {
+      "description": "One piece of evidence, precise enough for a reader to land on the exact passage.",
+      "properties": {
+        "id": {
+          "description": "See make_source_id()",
+          "pattern": "^[0-9a-f]{10}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where inside the source, e.g. '10-K FY2025, Item 1A, para 12'",
+          "title": "Locator"
+        },
+        "snippet": {
+          "default": "",
+          "description": "Verbatim excerpt backing the claim. Never the full document — full text lives in the cache layer, not in the report or the graph state.",
+          "maxLength": 2000,
+          "title": "Snippet",
+          "type": "string"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "url",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceKind": {
+      "description": "Where a piece of evidence came from. Drives the citation UI's icon and styling.",
+      "enum": [
+        "sec_filing",
+        "market_data",
+        "web",
+        "computed"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    }
+  },
+  "description": "A complete research report.",
+  "properties": {
+    "schema_version": {
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "ticker": {
+      "pattern": "^[A-Z.\\-]{1,10}$",
+      "title": "Ticker",
+      "type": "string"
+    },
+    "company_name": {
+      "title": "Company Name",
+      "type": "string"
+    },
+    "question": {
+      "description": "The user's question, or a generated one for ticker mode",
+      "title": "Question",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "data_as_of": {
+      "description": "Freshness of the newest datapoint used",
+      "format": "date-time",
+      "title": "Data As Of",
+      "type": "string"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/Section"
+      },
+      "minItems": 1,
+      "title": "Sections",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "meta": {
+      "$ref": "#/$defs/ReportMeta"
+    },
+    "disclaimer": {
+      "default": "This report is generated by an automated research agent for informational purposes only. It is not investment advice, and it contains no rating, recommendation or price target. Data may be delayed or incomplete. Verify every figure against the linked primary source before acting on it.",
+      "title": "Disclaimer",
+      "type": "string"
+    }
+  },
+  "required": [
+    "ticker",
+    "company_name",
+    "question",
+    "generated_at",
+    "data_as_of",
+    "sections"
+  ],
+  "title": "Report",
+  "type": "object"
+}

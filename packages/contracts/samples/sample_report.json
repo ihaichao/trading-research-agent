@@ -1,0 +1,195 @@
+{
+  "schema_version": "0.1.0",
+  "ticker": "EXMP",
+  "company_name": "Example Corp (fictional)",
+  "question": "How is Example Corp's data center business trending, and what are the risks?",
+  "generated_at": "2026-08-26T12:00:00Z",
+  "data_as_of": "2026-08-26T12:00:00Z",
+  "sections": [
+    {
+      "kind": "summary",
+      "title": "Summary",
+      "claims": [
+        {
+          "text": "Data center revenue grew 41% year over year in fiscal Q2 2026.",
+          "source_ids": [
+            "60e24cb46c"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Customer concentration remains the company's most-cited risk.",
+          "source_ids": [
+            "354ddf05db"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    },
+    {
+      "kind": "financials",
+      "title": "Financial performance",
+      "claims": [
+        {
+          "text": "Gross margin has expanded for four consecutive quarters.",
+          "source_ids": [
+            "60e24cb46c"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "metrics": [
+        {
+          "key": "revenue",
+          "label": "Total revenue",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2025Q3",
+              "value": 9800.0
+            },
+            {
+              "period": "FY2025Q4",
+              "value": 10500.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 11600.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 12400.0
+            }
+          ],
+          "source_ids": [
+            "60e24cb46c"
+          ]
+        },
+        {
+          "key": "gross_margin",
+          "label": "Gross margin",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2025Q3",
+              "value": 71.2
+            },
+            {
+              "period": "FY2025Q4",
+              "value": 72.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 73.1
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 74.5
+            }
+          ],
+          "source_ids": [
+            "60e24cb46c"
+          ]
+        }
+      ],
+      "narrative_md": "Revenue growth reaccelerated in the most recent quarter while gross margin continued to expand."
+    },
+    {
+      "kind": "catalysts",
+      "title": "Recent catalysts",
+      "claims": [
+        {
+          "text": "The company announced three new data center regions in August 2026.",
+          "source_ids": [
+            "aa72fc5efb"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    },
+    {
+      "kind": "risks",
+      "title": "Risks",
+      "claims": [
+        {
+          "text": "Revenue is concentrated among a small number of customers.",
+          "source_ids": [
+            "354ddf05db"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    },
+    {
+      "kind": "valuation",
+      "title": "Valuation",
+      "claims": [
+        {
+          "text": "The stock closed at 184.30 USD on 2026-08-26.",
+          "source_ids": [
+            "aa41737f6f"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    }
+  ],
+  "sources": [
+    {
+      "id": "60e24cb46c",
+      "kind": "sec_filing",
+      "title": "Example Corp — Form 10-Q, fiscal Q2 2026",
+      "url": "https://www.sec.gov/Archives/edgar/data/0000000000/example-10q.htm",
+      "locator": "10-Q FY2026Q2, Item 2 (MD&A)",
+      "snippet": "Data center revenue was $12.4 billion, up 41% from a year ago, driven by demand for accelerated computing platforms.",
+      "published_at": "2026-08-05T00:00:00Z",
+      "retrieved_at": "2026-08-26T12:00:00Z"
+    },
+    {
+      "id": "354ddf05db",
+      "kind": "sec_filing",
+      "title": "Example Corp — Form 10-K, fiscal 2025",
+      "url": "https://www.sec.gov/Archives/edgar/data/0000000000/example-10q.htm",
+      "locator": "10-K FY2025, Item 1A, para 4",
+      "snippet": "A significant portion of our revenue is concentrated among a small number of customers. The loss of any one of them could materially harm our operating results.",
+      "published_at": "2026-02-20T00:00:00Z",
+      "retrieved_at": "2026-08-26T12:00:00Z"
+    },
+    {
+      "id": "aa72fc5efb",
+      "kind": "web",
+      "title": "Example Corp expands data center capacity (fictional)",
+      "url": "https://example.com/news/fictional-company-datacenter",
+      "locator": null,
+      "snippet": "The company said it will add three regions over the next year.",
+      "published_at": "2026-08-18T00:00:00Z",
+      "retrieved_at": "2026-08-26T12:00:00Z"
+    },
+    {
+      "id": "aa41737f6f",
+      "kind": "market_data",
+      "title": "EXMP daily close",
+      "url": "https://finance.yahoo.com/quote/EXMP",
+      "locator": "2026-08-26 close",
+      "snippet": "EXMP closed at 184.30 USD.",
+      "published_at": null,
+      "retrieved_at": "2026-08-26T12:00:00Z"
+    }
+  ],
+  "meta": {
+    "model": "example-model",
+    "duration_seconds": 142.0,
+    "cost_usd": 0.31,
+    "tool_calls": 17,
+    "research_iterations": 3
+  },
+  "disclaimer": "This report is generated by an automated research agent for informational purposes only. It is not investment advice, and it contains no rating, recommendation or price target. Data may be delayed or incomplete. Verify every figure against the linked primary source before acting on it."
+}
