@@ -1,19 +1,6 @@
-"""M0-2 练习：不依赖任何 agent 框架，手写一个最小 ReAct 循环。
-
-目标：跑通 `uv run python examples/react_from_scratch.py "英伟达现在多少钱？"`
-
-为什么要先写这个：LangGraph / create_agent 底下就是这个循环。自己写一遍，
-面试时被问到"agent 到底是怎么工作的"，你答的是机制而不是 API 名字。
-
-已经给你的：工具、提示词、LLM 调用、主函数。
-需要你实现的：`parse_action()` 和 `run_react()` —— 也就是循环本身。
-
-写完后把 tests/test_react_from_scratch.py 里的 `pytest.mark.skip` 删掉，
-`make test` 应该全绿。
-"""
-
 from __future__ import annotations
 
+import re
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -37,9 +24,10 @@ MAX_STEPS = 6
 
 def get_quote(ticker: str) -> str:
     """返回某个美股代码的最新价格。"""
-    info = yf.Ticker(ticker.strip().upper()).fast_info
-    price = info.get("last_price")
-    currency = info.get("currency", "USD")
+    t = yf.Ticker(ticker.strip().upper())
+    info = t.fast_info
+    price = info.get("lastPrice") or getattr(info, "last_price", None)
+    currency = info.get("currency", "USD") if hasattr(info, "get") else "USD"
     if price is None:
         return f"ERROR: no price found for {ticker!r}"
     return f"{ticker.upper()} last price: {price:.2f} {currency}"
@@ -86,55 +74,42 @@ class Action:
 
 
 # --------------------------------------------------------------------------
-# 3. TODO(你来写)：解析模型输出
+# 3. 解析模型输出
 # --------------------------------------------------------------------------
 
 
 def parse_action(text: str) -> Action | str:
-    """解析模型的一次输出。
+    """解析模型的一次输出。"""
+    final_match = re.search(
+        r"^\s*Final Answer:\s*(.*?)(?=\n\s*Action:|\Z)",
+        text,
+        re.IGNORECASE | re.MULTILINE | re.DOTALL,
+    )
+    if final_match:
+        return final_match.group(1).strip()
 
-    返回 `Action` 表示还要继续调工具；返回 `str` 表示这是最终答案。
+    action_match = re.search(
+        r"^\s*Action:\s*([^\n]+)\s*\n+\s*Action Input:\s*([^\n]*)",
+        text,
+        re.IGNORECASE | re.MULTILINE,
+    )
 
-    要求：
-      - 认出 "Final Answer:" 开头的最终答案，返回其后的文本（去掉首尾空白）
-      - 认出 "Action:" / "Action Input:" 两行，返回对应的 Action
-      - 两者都没有时，抛 ValueError（把原文带进异常信息，方便调试）
-      - 大小写、多余空行都要能容错
+    if action_match:
+        tool_name = action_match.group(1).strip()
+        tool_input = action_match.group(2).strip()
+        if tool_name:
+            return Action(tool=tool_name, tool_input=tool_input)
 
-    提示：re.search 配合 re.MULTILINE / re.DOTALL；先判 Final Answer 再判 Action。
-    """
-    raise NotImplementedError("M0-2: 实现我")
-
-
-# --------------------------------------------------------------------------
-# 4. TODO(你来写)：ReAct 主循环
-# --------------------------------------------------------------------------
-
-
-def run_react(question: str, *, verbose: bool = True) -> str:
-    """跑一轮 ReAct，返回最终答案。
-
-    骨架：
-      1. messages = [system, user]
-      2. 循环最多 MAX_STEPS 次：
-         a. 调 `call_llm(messages)` 拿到一段文本
-         b. 把这段文本作为 assistant 消息追加进 messages   ← 忘了这步，模型会失忆
-         c. parse_action()
-         d. 是 str  → 直接返回
-            是 Action → 查 TOOLS 执行；工具不存在或抛异常时，
-                        把错误信息当作 Observation 回灌，让模型自己纠错，
-                        而不是让程序崩掉                    ← 这是 agent 健壮性的核心
-         e. 把 "Observation: <结果>" 作为 user 消息追加
-      3. 循环用尽仍没有 Final Answer → 返回一句诚实的"我没能在限定步数内得出结论"
-
-    verbose=True 时用 console.print 打印每一步，你要能亲眼看到它在想什么。
-    """
-    raise NotImplementedError("M0-2: 实现我")
+    raise ValueError(f"Could not parse LLM output into Action or Final Answer:\n{text}")
 
 
 # --------------------------------------------------------------------------
-# 5. 已经给你的：LLM 调用
+# 4. LLM 调用
 # --------------------------------------------------------------------------
+
+# 「能把一段对话历史变成一段文本」的任何东西。真实实现是下面的 call_llm，
+# 测试里塞一个按剧本返回固定文本的假模型。
+LLMCallable = Callable[[list[dict[str, Any]]], str]
 
 
 def call_llm(messages: list[dict[str, Any]]) -> str:
@@ -149,6 +124,67 @@ def call_llm(messages: list[dict[str, Any]]) -> str:
         stop=["Observation:"],  # 别让模型自己把观察结果编出来
     )
     return (resp.choices[0].message.content or "").strip()
+
+
+# --------------------------------------------------------------------------
+# 5. ReAct 主循环
+# --------------------------------------------------------------------------
+
+
+def run_react(
+    question: str,
+    *,
+    llm: LLMCallable = call_llm,
+    verbose: bool = True,
+) -> str:
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": question},
+    ]
+
+    for step in range(MAX_STEPS):
+        if verbose:
+            console.rule(f"[bold yellow]Step {step + 1}/{MAX_STEPS}")
+
+        # a. 调 llm 拿到一段文本
+        llm_output = llm(messages)
+        if verbose:
+            console.print(f"[cyan]LLM Output:[/cyan]\n{llm_output}\n")
+
+        # b. 把模型输出作为 assistant 消息追加（防止失忆）
+        messages.append({"role": "assistant", "content": llm_output})
+
+        # c. 解析动作
+        try:
+            action_or_answer = parse_action(llm_output)
+        except ValueError as e:
+            observation = f"ERROR: Invalid format ({e})"
+            messages.append({"role": "user", "content": f"Observation: {observation}"})
+            continue
+
+        # d. 最终答案直接返回
+        if isinstance(action_or_answer, str):
+            return action_or_answer
+
+        # e. 是 Action，执行工具并回灌 Observation
+        action = action_or_answer
+        tool_fn = TOOLS.get(action.tool)
+        if tool_fn is None:
+            observation = (
+                f"ERROR: tool {action.tool!r} not found. Available tools: {list(TOOLS.keys())}"
+            )
+        else:
+            try:
+                observation = tool_fn(action.tool_input)
+            except Exception as e:
+                observation = f"ERROR executing tool {action.tool}: {e}"
+
+        if verbose:
+            console.print(f"[green]Observation:[/green] {observation}\n")
+
+        messages.append({"role": "user", "content": f"Observation: {observation}"})
+
+    return "Sorry, I couldn't get the answer in the given steps."
 
 
 def main() -> None:
