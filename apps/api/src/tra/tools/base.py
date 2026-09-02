@@ -53,8 +53,7 @@ class ToolResult[T](BaseModel):
         return cls.failure(f"{type(exc).__name__}: {exc}", hint=hint)
 
     def for_model(self) -> str:
-        """转成喂给 LLM 的文本。
-        """
+        """转成喂给 LLM 的文本。"""
         if not self.ok:
             lines = [f"ERROR: {self.error or 'unknown error'}"]
             if self.hint:
@@ -72,8 +71,7 @@ class ToolResult[T](BaseModel):
 
 
 def _render(data: Any) -> str:
-    """把工具数据渲染成模型能读的文本。
-    """
+    """把工具数据渲染成模型能读的文本。"""
     if data is None:
         return ""
     if isinstance(data, str):

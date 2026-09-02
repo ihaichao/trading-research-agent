@@ -12,8 +12,7 @@ from tra.config import get_settings
 
 
 class RateLimiter:
-    """令牌桶：以固定速率产生令牌，取不到就阻塞等待。
-    """
+    """令牌桶：以固定速率产生令牌，取不到就阻塞等待。"""
 
     def __init__(self, rate_per_sec: float, burst: float | None = None) -> None:
         if rate_per_sec <= 0:
