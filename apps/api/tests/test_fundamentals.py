@@ -19,10 +19,15 @@ from tra.tools.fundamentals import (
     ConceptSpec,
     RawFact,
     build_series,
+    concept_name,
+    coverage,
     dedupe_latest_filed,
     filing_url,
+    find_identical_series,
     get_financials,
+    group_by_concept,
     period_label,
+    select_for,
 )
 
 NOW = datetime(2026, 8, 26, tzinfo=UTC)
@@ -235,3 +240,117 @@ def test_real_sec_call_returns_nvda_revenue() -> None:
 
 def _spec_sanity() -> None:
     assert isinstance(REVENUE, ConceptSpec)
+
+
+# ------------------------------------------------------------------ 候选选择
+
+
+def test_coverage_counts_distinct_periods_then_recency() -> None:
+    few_recent = [fact(end="2026-01-25"), fact(end="2025-10-26")]
+    many_old = [fact(end=f"2019-0{i}-01") for i in range(1, 5)]
+    assert coverage(many_old) > coverage(few_recent), "先比期间数量"
+
+    a = [fact(end="2026-01-25"), fact(end="2025-10-26")]
+    b = [fact(end="2020-01-25"), fact(end="2019-10-26")]
+    assert coverage(a) > coverage(b), "数量相同再比谁更新"
+
+
+def test_coverage_ignores_duplicate_periods() -> None:
+    """同一期间的多条重复记录不算多份覆盖。"""
+    dupes = [fact(end="2025-07-27", filed="2025-08-28"), fact(end="2025-07-27", filed="2026-02-26")]
+    assert coverage(dupes)[0] == 1
+
+
+def test_select_for_prefers_coverage_over_candidate_order() -> None:
+    """这条钉死了 NVDA 暴露出来的第一个 bug。
+
+    RevenueFromContractWithCustomer... 排在候选清单第一位，但只剩两条七年前的
+    数据；真正在用的概念排在后面。取"第一个非空"会静默返回过期数据。
+    """
+    stale_first = [fact(end="2019-07-28"), fact(end="2019-10-27")]
+    live_later = [fact(end=f"2025-0{i}-01") for i in range(1, 8)]
+
+    chosen = select_for(
+        CONCEPTS["revenue"],
+        {
+            "RevenueFromContractWithCustomerExcludingAssessedTax": stale_first,
+            "Revenues": live_later,
+        },
+    )
+    assert chosen is live_later
+
+
+def test_select_for_ignores_concepts_outside_the_candidate_list() -> None:
+    """这条钉死了第二个 bug，也是更危险的那个。
+
+    edgartools 的模糊匹配是子串匹配：by_concept("Revenue") 会命中
+    us-gaap:CostOfRevenue。不做白名单校验，营收列里会出现销售成本的数字——
+    表格照打、数字是真的、只是张冠李戴。
+    """
+    chosen = select_for(
+        CONCEPTS["revenue"],
+        {
+            "CostOfRevenue": [fact(end=f"2025-0{i}-01") for i in range(1, 8)],
+            "ContractWithCustomerLiabilityRevenueRecognized": [fact(end="2025-07-27")],
+        },
+    )
+    assert chosen == [], "候选清单之外的概念一律不认，宁可没有数据"
+
+
+def test_select_for_on_empty_input() -> None:
+    assert select_for(CONCEPTS["revenue"], {}) == []
+
+
+def test_concept_name_strips_the_taxonomy_prefix() -> None:
+    """edgartools 的概念名带前缀，我们的候选清单写的是裸名。"""
+    assert concept_name("us-gaap:CostOfRevenue") == "CostOfRevenue"
+    assert concept_name("CostOfRevenue") == "CostOfRevenue"
+
+
+def test_group_by_concept_normalizes_names() -> None:
+    facts = [
+        RawFact(
+            concept="us-gaap:Revenues",
+            value=1.0,
+            period_start=None,
+            period_end=date(2025, 7, 27),
+            fiscal_year=2026,
+            fiscal_period="Q2",
+            form="10-Q",
+            accession="0001045810-25-000123",
+            filed=date(2025, 8, 28),
+        )
+    ]
+    grouped = group_by_concept(facts)
+    assert list(grouped) == ["Revenues"]
+
+
+# ------------------------------------------------------------------ 自检
+
+
+def test_identical_series_are_flagged() -> None:
+    """概念名取错的典型症状：两个指标变成同一列数字。
+
+    这正是 NVDA 那次的现象——营收拿到了销售成本的值，表格照打、数字都真、
+    只是张冠李戴。两个不同的财务指标在多个期间上逐个相等，概率约等于零。
+    """
+    from tra.report.schema import MetricPoint, MetricSeries
+
+    def make(key: str, values: list[float]) -> MetricSeries:
+        return MetricSeries(
+            key=key,
+            label=key,
+            unit="USD_millions",
+            points=[MetricPoint(period=f"FY2026Q{i + 1}", value=v) for i, v in enumerate(values)],
+            source_ids=["x"],
+        )
+
+    same = [make("revenue", [1.0, 2.0]), make("cost_of_revenue", [1.0, 2.0])]
+    assert find_identical_series(same) == [("revenue", "cost_of_revenue")]
+
+    different = [make("revenue", [1.0, 2.0]), make("cost_of_revenue", [1.0, 3.0])]
+    assert find_identical_series(different) == []
+
+
+def test_identical_check_ignores_empty_series() -> None:
+    assert find_identical_series([]) == []

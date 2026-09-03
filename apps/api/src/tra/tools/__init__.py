@@ -2,6 +2,8 @@
 
 from tra.tools.base import ToolResult
 from tra.tools.cache import cache_path, clear_cache, disk_cache
+from tra.tools.fundamentals import get_financials
+from tra.tools.market import get_price_history, get_quote
 from tra.tools.ratelimit import RateLimiter, sec_limiter
 
 __all__ = [
@@ -10,5 +12,8 @@ __all__ = [
     "cache_path",
     "clear_cache",
     "disk_cache",
+    "get_financials",
+    "get_price_history",
+    "get_quote",
     "sec_limiter",
 ]
