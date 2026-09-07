@@ -84,6 +84,9 @@ CONCEPTS: dict[str, ConceptSpec] = {
 
 DEFAULT_METRICS = ("revenue", "gross_profit", "operating_income", "net_income")
 
+COMPANY_NAMES: dict[str, str] = {}
+"""ticker -> SEC 登记的公司名。取过数之后填上，供报告标题使用。"""
+
 
 @dataclass(frozen=True)
 class RawFact:
@@ -93,6 +96,12 @@ class RawFact:
     period_start: date | None
     period_end: date
     fiscal_year: int | None
+    """**这是报告它的那份 filing 的财年，不是这条事实自己的期间。**
+
+    SEC companyfacts 里的 fy/fp 描述"报告的焦点期间"。一份 FY2026Q2 的 10-Q
+    里，去年同期的对比数字也被打上 fy=2026, fp=Q2。拿它当期间标签用，
+    整张表会整体错一年。只用来追溯出处，绝不用来算期间。
+    """
     fiscal_period: str | None
     form: str | None
     accession: str | None
@@ -108,16 +117,47 @@ def concept_name(concept: str) -> str:
     return concept.split(":")[-1]
 
 
-def period_label(fact: RawFact) -> str:
+def parse_fiscal_year_end(value: object) -> int | None:
+    """从 SEC 的财年结束标记里解析出月份。
+
+    见过的格式：'0131'、'--01-31'、'01-31'。解析不出来就返回 None——
+    **宁可退回用日期当标签，也不能猜错一个月份**，猜错等于整表标签全错。
+    """
+    if value is None:
+        return None
+    text = str(value).strip().lstrip("-")
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if len(digits) >= 2:
+        month = int(digits[:2])
+        if 1 <= month <= 12:
+            return month
+    return None
+
+
+def fiscal_label(period_end: date, fiscal_year_end_month: int | None) -> str:
+    """由期间结束日推导财年标签，例如 FY2026Q2。
+
+    规则：财年以它**结束的那个自然年**命名。NVDA 财年一月底结束，
+    所以 2025-07-27 结束的那个季度属于 FY2026，是该财年的第二季度。
+
+    财年结束月未知时退回 ISO 日期。日期永远不会错，标签错了会误导每一个读者。
+    """
+    if not fiscal_year_end_month:
+        return period_end.isoformat()
+
+    year = period_end.year + (0 if period_end.month <= fiscal_year_end_month else 1)
+    start_month = fiscal_year_end_month % 12 + 1
+    quarter = (period_end.month - start_month) % 12 // 3 + 1
+    return f"FY{year}Q{quarter}"
+
+
+def period_label(fact: RawFact, fiscal_year_end_month: int | None = None) -> str:
     """期间标签，如 FY2026Q2。
 
-    优先用 XBRL 自带的财年/财季——**不能自己按自然季度推**：
-    NVDA 的财年一月底结束，FY2026Q2 覆盖的是自然年的 5–7 月。
+    **绝不用 fact.fiscal_year / fiscal_period**——它们描述的是报告这条事实的
+    那份 filing，不是事实自己的期间（见 RawFact.fiscal_year 的说明）。
     """
-    if fact.fiscal_year and fact.fiscal_period:
-        fp = fact.fiscal_period.upper()
-        return f"FY{fact.fiscal_year}{fp}" if fp != "FY" else f"FY{fact.fiscal_year}"
-    return fact.period_end.isoformat()
+    return fiscal_label(fact.period_end, fiscal_year_end_month)
 
 
 def filing_url(cik: int | str, accession: str) -> str:
@@ -131,24 +171,34 @@ def filing_url(cik: int | str, accession: str) -> str:
     return f"https://www.sec.gov/Archives/edgar/data/{cik_plain}/{no_dash}/{accession}-index.html"
 
 
-def dedupe_latest_filed(facts: list[RawFact]) -> list[RawFact]:
-    """同一期间保留 filed 最新的那条。
+def pick_authoritative(facts: list[RawFact]) -> list[RawFact]:
+    """同一期间的多条记录里挑一条。**挑哪条，取决于它们是否一致。**
 
-    为什么会重复：FY2026Q2 的营收会出现在当季 10-Q、一年后 10-Q 的对比列、
+    为什么会重复：FY2025Q3 的营收会出现在当季 10-Q、次年同季 10-Q 的对比列、
     以及 10-K 的对比列里，三到五条。
-    为什么取最新：最新那份 filing 反映公司当下对该期间的最终认定，
-    重述（restatement）已经体现在里面。做投资研究要的是"现在认为当时是多少"。
+
+    规则：
+    - **数值一致** → 取**最早申报**的那份，也就是首次报告它的文件。
+      这样读者点开 FY2025Q3 的引用，落在 FY2025Q3 的 10-Q 上，而不是一年后
+      那份把它列为"去年同期"的文件里。数字一样，出处的可读性差很多。
+    - **数值不一致** → 取**最新申报**的那份。不一致意味着重述或科目重分类，
+      做研究要的是"现在认为当时是多少"。
+
+    早先只有后一条规则，结果每个引用都指向最新的文件，读者点进去找不到
+    自己想核对的那个季度——一个不影响数字、但严重影响可核查性的问题。
     """
-    best: dict[date, RawFact] = {}
+    groups: dict[date, list[RawFact]] = {}
     for fact in facts:
-        current = best.get(fact.period_end)
-        if current is None:
-            best[fact.period_end] = fact
-            continue
-        # filed 缺失时排在后面，别让没有日期的记录顶掉有日期的
-        if (fact.filed or date.min) > (current.filed or date.min):
-            best[fact.period_end] = fact
-    return [best[k] for k in sorted(best)]
+        groups.setdefault(fact.period_end, []).append(fact)
+
+    chosen: list[RawFact] = []
+    for period in sorted(groups):
+        candidates = groups[period]
+        restated = len({round(f.value, 2) for f in candidates}) > 1
+        # filed 缺失时排在最后，别让没有日期的记录顶掉有日期的
+        key = (lambda f: f.filed or date.min) if restated else (lambda f: f.filed or date.max)
+        chosen.append(max(candidates, key=key) if restated else min(candidates, key=key))
+    return chosen
 
 
 def build_series(
@@ -158,13 +208,14 @@ def build_series(
     cik: int | str,
     company_name: str,
     periods: int,
+    fiscal_year_end_month: int | None = None,
     retrieved_at: datetime | None = None,
 ) -> tuple[MetricSeries, list[Source]] | None:
     if not facts:
         return None
 
     retrieved_at = retrieved_at or datetime.now(UTC)
-    selected = dedupe_latest_filed(facts)[-periods:]
+    selected = pick_authoritative(facts)[-periods:]
     if not selected:
         return None
 
@@ -172,19 +223,27 @@ def build_series(
     points: list[MetricPoint] = []
     for fact in selected:
         if fact.accession:
+            # **一份 filing 一条出处**，不是「filing × 概念」一条。
+            # 后者会让 6 个指标 × 12 个季度炸出 70+ 条参考文献：
+            # 提示词被撑爆（模型因此返回过空字符串）、报告尾部全是重复链接。
+            # 具体是哪个指标，MetricSeries 自己记着，不需要出处再重复一遍。
             url = filing_url(cik, fact.accession)
-            locator = (
-                f"{fact.form or 'filing'} {period_label(fact)}, XBRL {concept_name(fact.concept)}"
-            )
-            source_id = make_source_id(url, locator)
+            source_id = make_source_id(url)
             if source_id not in sources:
+                # fy/fp 描述的是这份 filing 自己的期间——**这才是它们的正确用法**，
+                # 用来给 filing 命名没问题，用来给 fact 标期间才是错的。
+                filing_period = (
+                    f"FY{fact.fiscal_year}{fact.fiscal_period}"
+                    if fact.fiscal_year and fact.fiscal_period
+                    else (fact.filed.isoformat() if fact.filed else "")
+                )
                 sources[source_id] = Source(
                     id=source_id,
                     kind=SourceKind.SEC_FILING,
-                    title=f"{company_name} — {fact.form or 'SEC filing'} ({period_label(fact)})",
+                    title=f"{company_name} — {fact.form or 'SEC filing'} {filing_period}".strip(),
                     url=url,
-                    locator=locator,
-                    snippet=f"{spec.label} = {fact.value:,.0f} USD ({fact.concept})",
+                    locator=f"{fact.form or 'filing'} {filing_period}".strip(),
+                    snippet=f"filed {fact.filed.isoformat()}" if fact.filed else "",
                     published_at=(
                         datetime.combine(fact.filed, datetime.min.time(), tzinfo=UTC)
                         if fact.filed
@@ -193,7 +252,7 @@ def build_series(
                     retrieved_at=retrieved_at,
                 )
         value = round(fact.value / 1_000_000, 1) if spec.unit == "USD_millions" else fact.value
-        points.append(MetricPoint(period=period_label(fact), value=value))
+        points.append(MetricPoint(period=period_label(fact, fiscal_year_end_month), value=value))
 
     ordered_sources = list(sources.values())
     if not ordered_sources:
@@ -358,6 +417,7 @@ def get_financials(
         company = _company(ticker)
         cik = company.cik
         name = getattr(company, "display_name", None) or ticker.upper()
+        fye_month = parse_fiscal_year_end(getattr(company, "fiscal_year_end", None))
 
         by_concept = group_by_concept(fetch_period_facts(company, months=3 if quarterly else 12))
 
@@ -368,13 +428,21 @@ def get_financials(
         for key in metrics:
             spec = CONCEPTS[key]
             facts = select_for(spec, by_concept)
-            built = build_series(spec, facts, cik=cik, company_name=name, periods=periods)
+            built = build_series(
+                spec,
+                facts,
+                cik=cik,
+                company_name=name,
+                periods=periods,
+                fiscal_year_end_month=fye_month,
+            )
             if built is None:
                 missing.append(key)
                 continue
             series, sources = built
             all_series.append(series)
-            all_sources.extend(sources)
+            seen = {s.id for s in all_sources}
+            all_sources.extend(s for s in sources if s.id not in seen)
 
         if not all_series:
             return ToolResult.failure(
@@ -386,7 +454,12 @@ def get_financials(
             )
 
         result: ToolResult[list[MetricSeries]] = ToolResult.success(all_series, all_sources)
+        COMPANY_NAMES[ticker.strip().upper()] = name
         notes: list[str] = []
+        if fye_month is None:
+            notes.append(
+                "fiscal calendar unknown, periods are labelled by end date rather than FYxxxxQn"
+            )
         identical = find_identical_series(all_series)
         if identical:
             notes.append(

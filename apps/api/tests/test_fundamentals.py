@@ -21,12 +21,14 @@ from tra.tools.fundamentals import (
     build_series,
     concept_name,
     coverage,
-    dedupe_latest_filed,
     filing_url,
     find_identical_series,
+    fiscal_label,
     get_financials,
     group_by_concept,
+    parse_fiscal_year_end,
     period_label,
+    pick_authoritative,
     select_for,
 )
 
@@ -78,51 +80,85 @@ def test_filing_url_drops_leading_zeros_from_cik() -> None:
 # ------------------------------------------------------------------ 期间标签
 
 
-def test_period_label_uses_the_fiscal_calendar_not_the_natural_one() -> None:
-    """NVDA 的财年一月底结束：FY2026Q2 覆盖的是自然年 5–7 月。
+def test_period_label_comes_from_the_end_date_not_the_filings_fy_fp() -> None:
+    """SEC 的 fy/fp 描述的是**报告这条事实的那份 filing**，不是事实自己的期间。
 
-    按 period_end 自己推自然季度会得到 Q3，全错。
+    一份 FY2027Q2 的 10-Q 里，去年同期的对比数字也被打上 fy=2027, fp=Q2。
+    拿它当标签用，整张表会整体错一年——真实数据上发生过。
     """
-    assert period_label(fact(end="2025-07-27", fy=2026, fp="Q2")) == "FY2026Q2"
+    stale = fact(end="2022-10-30", fy=2024, fp="Q3")  # 来自 FY2024Q3 10-Q 的对比列
+    assert period_label(stale, 1) == "FY2023Q3", "必须按 period_end 推，不能信 fy/fp"
 
 
-def test_period_label_handles_full_year() -> None:
-    assert period_label(fact(end="2026-01-25", fy=2026, fp="FY")) == "FY2026"
+def test_fiscal_label_follows_the_companys_own_calendar() -> None:
+    """NVDA 财年一月底结束：2025-07-27 结束的季度是 FY2026Q2，不是 FY2025Q3。"""
+    assert fiscal_label(date(2025, 7, 27), 1) == "FY2026Q2"
+    assert fiscal_label(date(2026, 1, 25), 1) == "FY2026Q4"
+    assert fiscal_label(date(2023, 4, 30), 1) == "FY2024Q1"
 
 
-def test_period_label_falls_back_to_the_end_date() -> None:
-    assert period_label(fact(end="2025-07-27", fy=None, fp=None)) == "2025-07-27"
+def test_fiscal_label_handles_a_calendar_year_company() -> None:
+    assert fiscal_label(date(2025, 3, 31), 12) == "FY2025Q1"
+    assert fiscal_label(date(2025, 12, 31), 12) == "FY2025Q4"
+
+
+def test_fiscal_label_falls_back_to_the_date_when_the_calendar_is_unknown() -> None:
+    """猜错一个月份 = 整表标签全错。日期永远不会错。"""
+    assert fiscal_label(date(2025, 7, 27), None) == "2025-07-27"
+
+
+def test_parse_fiscal_year_end_handles_sec_formats() -> None:
+    assert parse_fiscal_year_end("0131") == 1
+    assert parse_fiscal_year_end("--01-31") == 1
+    assert parse_fiscal_year_end("1231") == 12
+    assert parse_fiscal_year_end(None) is None
+    assert parse_fiscal_year_end("nonsense") is None
 
 
 # ------------------------------------------------------------------ 去重
 
 
-def test_keeps_the_most_recently_filed_record_for_a_period() -> None:
-    """同一期间会被后续 filing 反复报告，取最新那份——重述已体现在里面。"""
+def test_restated_period_takes_the_latest_filing() -> None:
+    """数值不一致意味着重述或科目重分类，取最新的——研究要的是"现在认为当时是多少"。"""
     facts = [
         fact(end="2025-07-27", value=46_743_000_000, filed="2025-08-28"),
-        fact(end="2025-07-27", value=46_700_000_000, filed="2026-02-26"),  # 年报里的对比列
+        fact(end="2025-07-27", value=46_700_000_000, filed="2026-02-26"),
     ]
-    kept = dedupe_latest_filed(facts)
+    kept = pick_authoritative(facts)
     assert len(kept) == 1
     assert kept[0].value == 46_700_000_000
 
 
-def test_dedupe_sorts_by_period() -> None:
+def test_unchanged_period_cites_the_filing_that_first_reported_it() -> None:
+    """数值一致时取最早申报的那份。
+
+    数字一样，但出处的可读性差很多：读者点开 FY2025Q3 的引用，应该落在
+    FY2025Q3 的 10-Q 上，而不是一年后那份把它列为"去年同期"的文件里。
+    """
+    facts = [
+        fact(end="2025-07-27", value=46_743_000_000, filed="2025-08-28", accession="A"),
+        fact(end="2025-07-27", value=46_743_000_000, filed="2026-08-27", accession="B"),
+    ]
+    kept = pick_authoritative(facts)
+    assert len(kept) == 1
+    assert kept[0].accession == "A", "没有重述就该指向首次报告它的文件"
+
+
+def test_periods_come_back_sorted() -> None:
     facts = [
         fact(end="2025-07-27", value=3),
         fact(end="2024-07-28", value=1),
         fact(end="2025-01-26", value=2),
     ]
-    assert [f.value for f in dedupe_latest_filed(facts)] == [1, 2, 3]
+    assert [f.value for f in pick_authoritative(facts)] == [1, 2, 3]
 
 
-def test_record_without_filing_date_never_displaces_one_with() -> None:
+def test_record_without_filing_date_never_wins() -> None:
     facts = [
         fact(end="2025-07-27", value=1, filed="2025-08-28"),
-        fact(end="2025-07-27", value=2, filed=None),
+        fact(end="2025-07-27", value=1, filed=None),
     ]
-    assert dedupe_latest_filed(facts)[0].value == 1
+    assert pick_authoritative(facts)[0].filed is not None
 
 
 # ------------------------------------------------------------------ 组装
@@ -136,7 +172,13 @@ def test_build_series_converts_to_millions_and_keeps_order() -> None:
         fact(end="2025-07-27", value=46_743_000_000, fy=2026, fp="Q2"),
     ]
     built = build_series(
-        REVENUE, facts, cik=NVDA_CIK, company_name="NVIDIA CORP", periods=12, retrieved_at=NOW
+        REVENUE,
+        facts,
+        cik=NVDA_CIK,
+        company_name="NVIDIA CORP",
+        periods=12,
+        fiscal_year_end_month=1,
+        retrieved_at=NOW,
     )
     assert built is not None
     series, sources = built
@@ -149,9 +191,17 @@ def test_build_series_converts_to_millions_and_keeps_order() -> None:
 
 
 def test_build_series_respects_the_period_limit_and_keeps_the_latest() -> None:
-    facts = [fact(end=f"2025-0{i}-01", value=i * 1e9, fp=f"Q{i}") for i in range(1, 5)]
+    # 季度末必须真的隔三个月，否则会落进同一个财季
+    ends = ["2025-04-28", "2025-07-28", "2025-10-28", "2026-01-28"]
+    facts = [fact(end=end, value=(i + 1) * 1e9) for i, end in enumerate(ends)]
     built = build_series(
-        REVENUE, facts, cik=NVDA_CIK, company_name="X", periods=2, retrieved_at=NOW
+        REVENUE,
+        facts,
+        cik=NVDA_CIK,
+        company_name="X",
+        periods=2,
+        fiscal_year_end_month=1,
+        retrieved_at=NOW,
     )
     assert built is not None
     assert [p.period for p in built[0].points] == ["FY2026Q3", "FY2026Q4"]
@@ -167,19 +217,50 @@ def test_build_series_returns_none_when_no_fact_has_a_source() -> None:
     assert build_series(REVENUE, facts, cik=1, company_name="X", periods=4) is None
 
 
-def test_sources_are_deduplicated_per_filing() -> None:
-    """同一份 filing 报了多个期间时，Source 只应该有一条。"""
-    same_accession = "0001045810-25-000123"
+def test_one_source_per_filing_not_per_line_item() -> None:
+    """一份 filing 一条出处，哪怕它贡献了多个期间、多个指标。
+
+    反面教材就在真实运行里：按「filing × 概念」建出处，6 个指标 × 12 个季度
+    炸出 73 条参考文献。提示词被撑爆（模型因此返回过空字符串），
+    报告尾部全是指向同一个 URL 的重复链接。
+    """
+    same_filing = "0001045810-25-000123"
     facts = [
-        fact(end="2025-04-27", value=1e9, fp="Q1", accession=same_accession),
-        fact(end="2025-07-27", value=2e9, fp="Q2", accession=same_accession),
+        fact(end="2025-04-27", value=1e9, accession=same_filing),
+        fact(end="2025-07-27", value=2e9, accession=same_filing),
     ]
-    built = build_series(REVENUE, facts, cik=1, company_name="X", periods=4, retrieved_at=NOW)
+    built = build_series(
+        REVENUE,
+        facts,
+        cik=1,
+        company_name="X",
+        periods=4,
+        fiscal_year_end_month=1,
+        retrieved_at=NOW,
+    )
     assert built is not None
-    # 两条 point 的 locator 不同（期间不同），所以 source 也不同——这是有意的，
-    # 引用要能定位到具体期间，而不只是定位到文件。
-    assert len(built[1]) == 2
-    assert built[1][0].url == built[1][1].url
+    assert len(built[1]) == 1, "同一份 filing 只该有一条出处"
+
+
+def test_source_locator_uses_the_filings_own_period() -> None:
+    """fy/fp 描述的是 filing 自己的期间——**这才是它们的正确用法**。
+
+    用它给 filing 命名没问题；用它给 fact 标期间才是错的（那会整表错一年）。
+    """
+    facts = [fact(end="2022-10-30", fy=2024, fp="Q3", accession="0001045810-23-000227")]
+    built = build_series(
+        REVENUE,
+        facts,
+        cik=1,
+        company_name="NVIDIA CORP",
+        periods=4,
+        fiscal_year_end_month=1,
+        retrieved_at=NOW,
+    )
+    assert built is not None
+    series, sources = built
+    assert series.points[0].period == "FY2023Q3", "事实的期间按 period_end 推"
+    assert sources[0].locator == "10-Q FY2024Q3", "出处按 filing 自己的期间命名"
 
 
 def test_series_plugs_straight_into_a_report() -> None:

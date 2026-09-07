@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     llm_base_url: str = Field(default="https://api.openai.com/v1")
     llm_model: str = Field(default="gpt-4.1-mini")
     llm_temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    llm_timeout_seconds: float = Field(
+        default=180.0,
+        gt=0,
+        description="单次模型调用的超时。没有它，一次卡住的请求会让整个流程静默地挂死。",
+    )
+    llm_max_retries: int = Field(default=1, ge=0, le=5)
 
     # --- SEC EDGAR ---
     # The SEC requires a descriptive User-Agent that includes a contact email,

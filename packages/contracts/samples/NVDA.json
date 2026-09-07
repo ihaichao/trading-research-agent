@@ -1,0 +1,1009 @@
+{
+  "schema_version": "0.1.0",
+  "ticker": "NVDA",
+  "company_name": "NVIDIA CORP",
+  "question": "How has the business been performing recently, and what are the main risks?",
+  "generated_at": "2026-09-04T10:07:48.240112Z",
+  "data_as_of": "2026-09-04T10:07:48.240112Z",
+  "sections": [
+    {
+      "kind": "summary",
+      "title": "Recent performance",
+      "claims": [
+        {
+          "text": "Revenue grew for 12 consecutive quarters from FY2023Q3 (5,931 USD millions) to FY2027Q2 (96,221 USD millions).",
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "In FY2027Q2, revenue was 96,221 USD millions, up 105.8% year over year and 17.9% quarter over quarter.",
+          "source_ids": [
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Net income increased from 680 USD millions in FY2023Q3 to 59,688 USD millions in FY2027Q2.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    },
+    {
+      "kind": "financials",
+      "title": "Financial trends",
+      "claims": [
+        {
+          "text": "Gross margin rose from 53.6% in FY2023Q3 to 75.0% in FY2027Q2, with a dip to 60.5% in FY2026Q1.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899",
+            "ed94e83dd6"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Operating margin rose from 10.1% in FY2023Q3 to 66.2% in FY2027Q2.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Net margin rose from 11.5% in FY2023Q3 to 62.0% in FY2027Q2.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "R&D expense increased from 1,945 USD millions in FY2023Q3 to 7,054 USD millions in FY2027Q2.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Cost of revenue increased from 2,754 USD millions in FY2023Q3 to 24,079 USD millions in FY2027Q2.",
+          "source_ids": [
+            "9362144197",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Year-over-year revenue growth decelerated from 262.1% in FY2025Q1 to 55.6% in FY2026Q2, then reaccelerated to 105.8% in FY2027Q2.",
+          "source_ids": [
+            "1084f83b7a",
+            "e2d0285c65",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Quarter-over-quarter revenue growth slowed to 6.1% in FY2026Q2 before rebounding to 22.0% in FY2026Q3 and 17.9% in FY2027Q2.",
+          "source_ids": [
+            "e2d0285c65",
+            "710375934e",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [
+        {
+          "key": "revenue",
+          "label": "Total revenue",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 5931.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 7192.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 13507.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 18120.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 26044.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 30040.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 35082.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 44062.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 46743.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 57006.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 81615.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 96221.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "cost_of_revenue",
+          "label": "Cost of revenue",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 2754.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 2544.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 4045.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 4720.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 5638.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 7466.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 8926.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 17394.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 12890.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 15157.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 20458.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 24079.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "gross_profit",
+          "label": "Gross profit",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 3177.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 4648.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 9462.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 13400.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 20406.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 22574.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 26156.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 26668.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 33853.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 41849.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 61157.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 72142.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "operating_income",
+          "label": "Operating income",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 601.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 2140.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 6800.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 10417.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 16909.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 18642.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 21869.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 21638.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 28440.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 36010.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 53536.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 63734.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "net_income",
+          "label": "Net income",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 680.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 2043.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 6188.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 9243.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 14881.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 16599.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 19309.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 18775.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 26422.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 31910.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 58321.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 59688.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "rnd_expense",
+          "label": "R&D expense",
+          "unit": "USD_millions",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 1945.0
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 1875.0
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 2040.0
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 2294.0
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 2720.0
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 3090.0
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 3390.0
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 3989.0
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 4291.0
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 4705.0
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 6321.0
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 7054.0
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "gross_margin",
+          "label": "Gross margin",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 53.57
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 64.63
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 70.05
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 73.95
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 78.35
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 75.15
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 74.56
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 60.52
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 72.42
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 73.41
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 74.93
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 74.98
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "operating_margin",
+          "label": "Operating margin",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 10.13
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 29.76
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 50.34
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 57.49
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 64.92
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 62.06
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 62.34
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 49.11
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 60.84
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 63.17
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 65.6
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 66.24
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "net_margin",
+          "label": "Net margin",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2023Q3",
+              "value": 11.47
+            },
+            {
+              "period": "FY2024Q1",
+              "value": 28.41
+            },
+            {
+              "period": "FY2024Q2",
+              "value": 45.81
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 51.01
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 57.14
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 55.26
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 55.04
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 42.61
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 56.53
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 55.98
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 71.46
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 62.03
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "revenue_growth_yoy",
+          "label": "Revenue growth (YoY)",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2024Q3",
+              "value": 205.51
+            },
+            {
+              "period": "FY2025Q1",
+              "value": 262.12
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 122.4
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 93.61
+            },
+            {
+              "period": "FY2026Q1",
+              "value": 69.18
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 55.6
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 62.49
+            },
+            {
+              "period": "FY2027Q1",
+              "value": 85.23
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 105.85
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        },
+        {
+          "key": "revenue_growth_qoq",
+          "label": "Revenue growth (QoQ)",
+          "unit": "percent",
+          "points": [
+            {
+              "period": "FY2024Q2",
+              "value": 87.81
+            },
+            {
+              "period": "FY2024Q3",
+              "value": 34.15
+            },
+            {
+              "period": "FY2025Q2",
+              "value": 15.34
+            },
+            {
+              "period": "FY2025Q3",
+              "value": 16.78
+            },
+            {
+              "period": "FY2026Q2",
+              "value": 6.08
+            },
+            {
+              "period": "FY2026Q3",
+              "value": 21.96
+            },
+            {
+              "period": "FY2027Q2",
+              "value": 17.9
+            }
+          ],
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ]
+        }
+      ],
+      "narrative_md": ""
+    },
+    {
+      "kind": "valuation",
+      "title": "Valuation data",
+      "claims": [
+        {
+          "text": "The source data set contains no valuation multiples; the only market data point is a delayed quote of 228.45 USD for NVDA as of 2026-09-03.",
+          "source_ids": [
+            "49876a6130"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    },
+    {
+      "kind": "risks",
+      "title": "Main risks",
+      "claims": [
+        {
+          "text": "Gross margin fell from 78.3% in FY2025Q1 to 60.5% in FY2026Q1, then recovered to 75.0% in FY2027Q2.",
+          "source_ids": [
+            "1084f83b7a",
+            "ed94e83dd6",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Operating margin fell from 64.9% in FY2025Q1 to 49.1% in FY2026Q1, then rose to 66.2% in FY2027Q2.",
+          "source_ids": [
+            "1084f83b7a",
+            "ed94e83dd6",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Net margin fell from 57.1% in FY2025Q1 to 42.6% in FY2026Q1, then rose to 62.0% in FY2027Q2.",
+          "source_ids": [
+            "1084f83b7a",
+            "ed94e83dd6",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Cost of revenue increased from 5,638 USD millions in FY2025Q1 to 24,079 USD millions in FY2027Q2.",
+          "source_ids": [
+            "1084f83b7a",
+            "c1a63d8899"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Net income declined sequentially in FY2026Q1 to 18,775 USD millions from 19,309 USD millions in FY2025Q3.",
+          "source_ids": [
+            "ed94e83dd6",
+            "6e500cd0dd"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Operating income declined sequentially in FY2026Q1 to 21,638 USD millions from 21,869 USD millions in FY2025Q3.",
+          "source_ids": [
+            "ed94e83dd6",
+            "6e500cd0dd"
+          ],
+          "confidence": "high"
+        },
+        {
+          "text": "Based solely on the provided quarterly metrics, the main observable risks are margin volatility and rising costs.",
+          "source_ids": [
+            "9362144197",
+            "1084f83b7a",
+            "bec9ac53e2",
+            "6e500cd0dd",
+            "ed94e83dd6",
+            "e2d0285c65",
+            "710375934e",
+            "f85a1b3fac",
+            "c1a63d8899"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "metrics": [],
+      "narrative_md": ""
+    }
+  ],
+  "sources": [
+    {
+      "id": "9362144197",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2024Q3",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581023000227/0001045810-23-000227-index.html",
+      "locator": "10-Q FY2024Q3",
+      "snippet": "filed 2023-11-21",
+      "published_at": "2023-11-21T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "1084f83b7a",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2025Q1",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000124/0001045810-24-000124-index.html",
+      "locator": "10-Q FY2025Q1",
+      "snippet": "filed 2024-05-29",
+      "published_at": "2024-05-29T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "bec9ac53e2",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2025Q2",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000264/0001045810-24-000264-index.html",
+      "locator": "10-Q FY2025Q2",
+      "snippet": "filed 2024-08-28",
+      "published_at": "2024-08-28T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "6e500cd0dd",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2025Q3",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581024000316/0001045810-24-000316-index.html",
+      "locator": "10-Q FY2025Q3",
+      "snippet": "filed 2024-11-20",
+      "published_at": "2024-11-20T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "ed94e83dd6",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2026Q1",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581025000116/0001045810-25-000116-index.html",
+      "locator": "10-Q FY2026Q1",
+      "snippet": "filed 2025-05-28",
+      "published_at": "2025-05-28T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "e2d0285c65",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2026Q2",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581025000209/0001045810-25-000209-index.html",
+      "locator": "10-Q FY2026Q2",
+      "snippet": "filed 2025-08-27",
+      "published_at": "2025-08-27T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "710375934e",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2026Q3",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581025000230/0001045810-25-000230-index.html",
+      "locator": "10-Q FY2026Q3",
+      "snippet": "filed 2025-11-19",
+      "published_at": "2025-11-19T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "f85a1b3fac",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2027Q1",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/0001045810-26-000052-index.html",
+      "locator": "10-Q FY2027Q1",
+      "snippet": "filed 2026-05-20",
+      "published_at": "2026-05-20T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "c1a63d8899",
+      "kind": "sec_filing",
+      "title": "NVIDIA CORP — 10-Q FY2027Q2",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/0001045810-26-000075-index.html",
+      "locator": "10-Q FY2027Q2",
+      "snippet": "filed 2026-08-26",
+      "published_at": "2026-08-26T00:00:00Z",
+      "retrieved_at": "2026-09-04T10:07:51.660118Z"
+    },
+    {
+      "id": "49876a6130",
+      "kind": "market_data",
+      "title": "NVDA quote",
+      "url": "https://finance.yahoo.com/quote/NVDA",
+      "locator": "yfinance quote 2026-09-03",
+      "snippet": "NVDA 228.45 USD (delayed, via yfinance)",
+      "published_at": null,
+      "retrieved_at": "2026-09-03T00:00:00-04:00"
+    }
+  ],
+  "meta": {
+    "model": "",
+    "duration_seconds": 284.285094,
+    "cost_usd": null,
+    "tool_calls": null,
+    "research_iterations": 1
+  },
+  "disclaimer": "This report is generated by an automated research agent for informational purposes only. It is not investment advice, and it contains no rating, recommendation or price target. Data may be delayed or incomplete. Verify every figure against the linked primary source before acting on it."
+}

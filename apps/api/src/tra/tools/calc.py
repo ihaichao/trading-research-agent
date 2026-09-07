@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import re
+
 from tra.report.schema import MetricPoint, MetricSeries
 
 
@@ -87,30 +89,56 @@ def difference(
     )
 
 
-def growth(series: MetricSeries, *, lag: int, key: str, label: str) -> MetricSeries | None:
-    """同比 / 环比增长率（百分比）。
+_PERIOD_RE = re.compile(r"^FY(\d{4})Q([1-4])$")
 
-    lag=4 是季度数据的同比（去年同期），lag=1 是环比。
-    **必须按 lag 取，不能按"上一个有值的期间"取**——中间缺一个季度的话，
-    后者会把环比当成同比，得出一个漂亮的假数字。
 
-    基期为 0 或负数时返回 None：从亏损转盈利算不出有意义的百分比增长。
+def parse_period(label: str) -> tuple[int, int] | None:
+    """FY2026Q2 -> (2026, 2)。不是这个格式就返回 None。"""
+    match = _PERIOD_RE.match(label)
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+def shift_period(label: str, back: int) -> str | None:
+    """往前推 N 个季度。FY2026Q2 往前 4 个 = FY2025Q2。"""
+    parsed = parse_period(label)
+    if parsed is None:
+        return None
+    year, quarter = parsed
+    index = year * 4 + (quarter - 1) - back
+    return f"FY{index // 4}Q{index % 4 + 1}"
+
+
+def growth(series: MetricSeries, *, back: int, key: str, label: str) -> MetricSeries | None:
+    """同比 / 环比增长率（百分比）。**按期间标签匹配，不按数组位置。**
+
+    back=4 是同比（去年同一财季），back=1 是环比。
+
+    为什么必须按标签匹配：SEC 的季度序列**天然缺 Q4**——大多数公司的 10-K
+    只报全年、不单独报第四季度。按位置往前数 4 格，会拿去年 Q1 当同期基数，
+    算出一个漂亮的假数字。这个 bug 在 NVDA 的真实数据上出现过：
+    同比被算成 339%，实际是 262%。
+
+    基期为 0 或负数时跳过该期：扭亏为盈算不出有意义的百分比，
+    报"扭亏为盈"才对，报"增长 -350%"是胡说。
+
+    期间标签不是 FYxxxxQn 时整条返回 None（比如财年未知、退化成了 ISO 日期）。
+    **算不了就别算**——一条按位置硬凑的曲线比没有更糟。
     """
-    points = series.points
-    if lag < 1 or len(points) <= lag:
+    if back < 1:
         return None
 
+    values = {p.period: p.value for p in series.points}
     out: list[MetricPoint] = []
-    for i in range(lag, len(points)):
-        current, base = points[i].value, points[i - lag].value
-        if current is None or base is None or base <= 0:
-            out.append(MetricPoint(period=points[i].period, value=None))
-        else:
-            out.append(
-                MetricPoint(period=points[i].period, value=round((current / base - 1) * 100, 2))
-            )
+    for point in series.points:
+        base_period = shift_period(point.period, back)
+        if base_period is None:
+            return None
+        base = values.get(base_period)
+        if point.value is None or base is None or base <= 0:
+            continue
+        out.append(MetricPoint(period=point.period, value=round((point.value / base - 1) * 100, 2)))
 
-    if all(p.value is None for p in out):
+    if not out:
         return None
 
     return MetricSeries(
@@ -135,12 +163,12 @@ def net_margin(revenue: MetricSeries, net_income: MetricSeries) -> MetricSeries 
 
 
 def revenue_growth_yoy(revenue: MetricSeries) -> MetricSeries | None:
-    """季度数据的同比。lag=4 是因为一年四个季度。"""
-    return growth(revenue, lag=4, key="revenue_growth_yoy", label="Revenue growth (YoY)")
+    """季度数据的同比：拿去年同一个财季做基数。"""
+    return growth(revenue, back=4, key="revenue_growth_yoy", label="Revenue growth (YoY)")
 
 
 def revenue_growth_qoq(revenue: MetricSeries) -> MetricSeries | None:
-    return growth(revenue, lag=1, key="revenue_growth_qoq", label="Revenue growth (QoQ)")
+    return growth(revenue, back=1, key="revenue_growth_qoq", label="Revenue growth (QoQ)")
 
 
 def derive_all(series_by_key: dict[str, MetricSeries]) -> list[MetricSeries]:

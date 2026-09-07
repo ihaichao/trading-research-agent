@@ -135,37 +135,53 @@ def test_growth_needs_more_points_than_the_lag() -> None:
     assert calc.revenue_growth_yoy(series("revenue", {"FY2026Q1": 1.0})) is None
 
 
-def test_growth_from_a_non_positive_base_is_none() -> None:
+def test_growth_from_a_non_positive_base_is_skipped() -> None:
     """扭亏为盈算不出有意义的百分比。报"增长 -350%" 是胡说。"""
     income = series("net_income", {"FY2026Q1": -50.0, "FY2026Q2": 125.0, "FY2026Q3": 250.0})
-    result = calc.growth(income, lag=1, key="g", label="g")
+    result = calc.growth(income, back=1, key="g", label="g")
     assert result is not None
-    assert result.points[0].value is None, "基期为负，该期算不出增长率"
-    assert result.points[1].value == pytest.approx(100.0), "基期正常的期间照常计算"
+    assert [p.period for p in result.points] == ["FY2026Q3"], "基期为负的那期直接不给"
+    assert result.points[0].value == pytest.approx(100.0)
 
 
 def test_growth_series_with_nothing_computable_is_dropped() -> None:
-    """一条全是 None 的 series 进报告只会制造噪音，不如不给。"""
+    """一条算不出任何值的 series 进报告只会制造噪音，不如不给。"""
     income = series("net_income", {"FY2026Q1": -50.0, "FY2026Q2": 125.0})
-    assert calc.growth(income, lag=1, key="g", label="g") is None
+    assert calc.growth(income, back=1, key="g", label="g") is None
 
 
-def test_growth_does_not_silently_treat_a_gap_as_a_full_year() -> None:
-    """中间缺季度时，lag 仍按位置取——不能"找上一个有值的期间"充数。"""
+def test_growth_returns_none_when_labels_are_not_fiscal_quarters() -> None:
+    """财年未知时期间标签退化成 ISO 日期，这时算不了同比——算不了就别算。"""
+    by_date = series("revenue", {"2025-04-27": 100.0, "2025-07-27": 125.0})
+    assert calc.growth(by_date, back=1, key="g", label="g") is None
+
+
+def test_shift_period_crosses_the_year_boundary() -> None:
+    assert calc.shift_period("FY2026Q2", 4) == "FY2025Q2"
+    assert calc.shift_period("FY2026Q1", 1) == "FY2025Q4"
+    assert calc.shift_period("2025-07-27", 1) is None
+
+
+def test_missing_q4_does_not_corrupt_the_year_over_year_number() -> None:
+    """这条钉死了在 NVDA 真实数据上出现过的 bug。
+
+    SEC 的季度序列天然缺 Q4（10-K 只报全年）。按数组位置往前数 4 格，
+    会拿去年 Q1 当同期基数——NVDA 的同比因此被算成 339%，实际是 262%。
+    """
     revenue = series(
         "revenue",
         {
-            "FY2025Q1": 100.0,
-            "FY2025Q2": None,
-            "FY2025Q3": 120.0,
-            "FY2025Q4": 130.0,
-            "FY2026Q1": 150.0,
+            "FY2024Q1": 7192.0,
+            "FY2024Q2": 13507.0,
+            "FY2024Q3": 18120.0,
+            # FY2024Q4 缺席，和真实数据一样
+            "FY2025Q1": 26044.0,
         },
     )
     result = calc.revenue_growth_yoy(revenue)
     assert result is not None
-    assert result.points[0].period == "FY2026Q1"
-    assert result.points[0].value == pytest.approx(50.0)
+    assert [p.period for p in result.points] == ["FY2025Q1"]
+    assert result.points[0].value == pytest.approx(262.12, abs=0.01), "按位置数会得到 339%"
 
 
 # ------------------------------------------------------------------ derive_all
