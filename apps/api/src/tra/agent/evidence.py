@@ -70,9 +70,7 @@ def format_series(series: MetricSeries) -> str:
         else:
             cells.append(f"{point.period}={point.value:,.0f}")
     unit = "" if series.unit == "percent" else f" ({series.unit})"
-    return (
-        f"{series.label}{unit}: " + ", ".join(cells) + f"  [cite: {', '.join(series.source_ids)}]"
-    )
+    return f"{series.label}{unit}: " + ", ".join(cells) + f"  (from {', '.join(series.source_ids)})"
 
 
 def build_evidence(pack: EvidencePack) -> str:
@@ -89,6 +87,10 @@ def build_evidence(pack: EvidencePack) -> str:
             "not Q4 separately). The listed periods are therefore NOT consecutive. Never write "
             '"consecutive quarters", "sequentially" or "quarter over quarter" unless the two '
             "period labels being compared are genuinely adjacent.",
+            "Because no fiscal year is complete here, SEASONALITY CANNOT BE ASSESSED. Never "
+            "claim that revenue is concentrated in particular fiscal quarters: the later "
+            "quarters look larger because the business grew, and because Q4 is absent — "
+            "not because of any seasonal pattern.",
         ]
 
     lines += ["", "SOURCES (only these ids may be cited):"]

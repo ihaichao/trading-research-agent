@@ -16,6 +16,8 @@ dependencies = [
     "rich>=13.9",
     "yfinance>=1.6",
     "edgartools>=5.53",
+    "langgraph>=1.2",
+    "langgraph-checkpoint-sqlite>=3.0",
 ]
 
 [project.optional-dependencies]

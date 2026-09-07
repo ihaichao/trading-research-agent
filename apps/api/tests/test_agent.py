@@ -102,9 +102,15 @@ def test_evidence_states_data_gaps() -> None:
 
 
 def test_series_are_rendered_with_their_citations() -> None:
+    """出处用 "(from ...)" 而不是 "[cite: ...]"。
+
+    模型会照抄证据里的写法：用 cite 字样，它就会把 "(cite: abc123)" 写进正文，
+    正文里的出处只该由渲染层的角标承担。
+    """
     rendered = format_series(series())
     assert "FY2026Q2=46,743" in rendered
-    assert "[cite: aaaaaaaaaa]" in rendered
+    assert "(from aaaaaaaaaa)" in rendered
+    assert "cite" not in rendered
 
 
 # ------------------------------------------------------------------ JSON 解析

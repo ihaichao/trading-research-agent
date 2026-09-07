@@ -228,3 +228,20 @@ def test_reported_gross_profit_wins_over_the_computed_one() -> None:
         {"revenue": REVENUE, "cost_of_revenue": cost, "gross_profit": GROSS_PROFIT}
     )
     assert not any(s.key == "gross_profit" for s in derived), "已申报就不该再推算一份"
+
+
+def test_rnd_intensity_is_computed_so_the_model_never_has_to() -> None:
+    """**模型反复想算某个东西，说明你的指标缺了它。**
+
+    真实运行里 rd_intensity 那个 researcher 三条判断被丢了两条，
+    全是它自己做除法算出的 33%、7.3%。与其禁止它算，不如把结果给它。
+    """
+    rnd = series("rnd_expense", {"FY2026Q1": 3989.0, "FY2026Q2": 4291.0}, sources=("sec_d",))
+    revenue = series("revenue", {"FY2026Q1": 44062.0, "FY2026Q2": 46743.0})
+
+    derived = calc.derive_all({"revenue": revenue, "rnd_expense": rnd})
+    intensity = next(s for s in derived if s.key == "rnd_intensity")
+
+    assert intensity.unit == "percent"
+    assert intensity.points[0].value == pytest.approx(9.05, abs=0.01)
+    assert set(intensity.source_ids) == {"s1", "sec_d"}, "引用继承两个输入"

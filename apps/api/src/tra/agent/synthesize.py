@@ -96,7 +96,7 @@ def check_citations(draft: Draft, allowed: set[str]) -> list[str]:
     return sorted(set(bad))
 
 
-_NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
+_NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?%?")
 
 
 def numbers_in(text: str) -> set[str]:
@@ -108,10 +108,12 @@ def numbers_in(text: str) -> set[str]:
     """
     found: set[str] = set()
     for raw in _NUMBER_RE.findall(text):
-        cleaned = raw.replace(",", "").rstrip(".")
+        is_percent = raw.endswith("%")
+        cleaned = raw.rstrip("%").replace(",", "").rstrip(".")
         if not cleaned:
             continue
-        if len(cleaned.split(".")[0]) >= 3 or "." in cleaned:
+        # 百分数一律核对，不看位数：模型最爱自己算的就是"占收入 33%"这种，
+        if is_percent or "." in cleaned or len(cleaned.split(".")[0]) >= 3:
             found.add(cleaned.rstrip("0").rstrip(".") if "." in cleaned else cleaned)
     return found
 

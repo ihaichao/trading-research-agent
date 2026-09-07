@@ -162,6 +162,10 @@ def net_margin(revenue: MetricSeries, net_income: MetricSeries) -> MetricSeries 
     return ratio(net_income, revenue, key="net_margin", label="Net margin")
 
 
+def rnd_intensity(revenue: MetricSeries, rnd: MetricSeries) -> MetricSeries | None:
+    return ratio(rnd, revenue, key="rnd_intensity", label="R&D as % of revenue")
+
+
 def revenue_growth_yoy(revenue: MetricSeries) -> MetricSeries | None:
     """季度数据的同比：拿去年同一个财季做基数。"""
     return growth(revenue, back=4, key="revenue_growth_yoy", label="Revenue growth (YoY)")
@@ -197,6 +201,7 @@ def derive_all(series_by_key: dict[str, MetricSeries]) -> list[MetricSeries]:
             ("gross_profit", gross_margin),
             ("operating_income", operating_margin),
             ("net_income", net_margin),
+            ("rnd_expense", rnd_intensity),
         ):
             other = series_by_key.get(other_key)
             if other:
