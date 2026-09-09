@@ -9,13 +9,16 @@
           "type": "string"
         },
         "source_ids": {
-          "description": "At least one. No exceptions.",
+          "description": "At least one for a finding. Exactly none for a limitation.",
           "items": {
             "type": "string"
           },
-          "minItems": 1,
           "title": "Source Ids",
           "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/ClaimKind",
+          "default": "finding"
         },
         "confidence": {
           "default": "medium",
@@ -29,11 +32,19 @@
         }
       },
       "required": [
-        "text",
-        "source_ids"
+        "text"
       ],
       "title": "Claim",
       "type": "object"
+    },
+    "ClaimKind": {
+      "description": "What a claim asserts — and therefore what \"checkable\" means for it.\n\nA FINDING says something about the company; it is checkable by opening its\nsources. A LIMITATION says something about the *evidence set* — \"a P/E ratio\ncannot be computed: share count is not in the evidence\". It has nothing to\ncite by construction, and demanding a citation for it is what pushed the\nmodel into either inventing an id or returning none at all.",
+      "enum": [
+        "finding",
+        "limitation"
+      ],
+      "title": "ClaimKind",
+      "type": "string"
     },
     "MetricPoint": {
       "properties": {

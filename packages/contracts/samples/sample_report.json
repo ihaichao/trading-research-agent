@@ -15,6 +15,7 @@
           "source_ids": [
             "60e24cb46c"
           ],
+          "kind": "finding",
           "confidence": "high"
         },
         {
@@ -22,6 +23,7 @@
           "source_ids": [
             "354ddf05db"
           ],
+          "kind": "finding",
           "confidence": "high"
         }
       ],
@@ -37,6 +39,7 @@
           "source_ids": [
             "60e24cb46c"
           ],
+          "kind": "finding",
           "confidence": "medium"
         }
       ],
@@ -105,6 +108,7 @@
           "source_ids": [
             "aa72fc5efb"
           ],
+          "kind": "finding",
           "confidence": "medium"
         }
       ],
@@ -120,6 +124,7 @@
           "source_ids": [
             "354ddf05db"
           ],
+          "kind": "finding",
           "confidence": "high"
         }
       ],
@@ -135,6 +140,7 @@
           "source_ids": [
             "aa41737f6f"
           ],
+          "kind": "finding",
           "confidence": "high"
         }
       ],

@@ -10,7 +10,16 @@ from examples.sample_report import OUT as SAMPLE
 from examples.sample_report import build
 from pydantic import ValidationError
 
-from tra.report import Claim, Report, Section, SectionKind, Source, SourceKind, make_source_id
+from tra.report import (
+    Claim,
+    ClaimKind,
+    Report,
+    Section,
+    SectionKind,
+    Source,
+    SourceKind,
+    make_source_id,
+)
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -96,3 +105,19 @@ def test_sample_report_is_valid_and_matches_the_checked_in_fixture() -> None:
 def test_round_trips_through_json() -> None:
     report = build()
     assert Report.model_validate_json(report.model_dump_json()) == report
+
+
+def test_a_limitation_may_cite_nothing_but_a_finding_may_not() -> None:
+    """**"每句都有出处"这条承诺没有松动，只是被说清楚了。**
+
+    它管的是"关于公司的论断"。"这份证据回答不了这个问题"没有出处可引——
+    以前的 schema 不区分这两者，于是把唯一诚实的回答判成了非法输入。
+    """
+    Claim(
+        text="A P/E ratio cannot be computed: share count is not in the evidence.",
+        kind=ClaimKind.LIMITATION,
+    )
+    with pytest.raises(ValidationError):
+        Claim(text="Revenue reached 46,743.")
+    with pytest.raises(ValidationError):
+        Claim(text="Guidance is absent.", kind=ClaimKind.LIMITATION, source_ids=["aaaaaaaaaa"])

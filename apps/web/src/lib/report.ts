@@ -6,7 +6,7 @@ export function buildCitationIndex(report: Report): Map<string, number> {
   let n = 0;
   for (const section of report.sections) {
     const ids = [
-      ...(section.claims ?? []).flatMap((c) => c.source_ids),
+      ...(section.claims ?? []).flatMap((c) => c.source_ids ?? []),
       ...(section.metrics ?? []).flatMap((m) => m.source_ids),
     ];
     for (const id of ids) {

@@ -1,0 +1,14 @@
+// 评测集。一行一个用例，// 开头的行会被忽略。
+// factual：有唯一正确答案 | rubric：开放题，靠打分 | trap：正确答案是"回答不了"
+{"id": "nvda-revenue-latest", "kind": "factual", "ticker": "NVDA", "question": "What was revenue in the most recent reported quarter?", "must_contain": ["96,221"], "note": "最新季度营收，直接来自 XBRL"}
+{"id": "nvda-margin-anomaly", "kind": "factual", "ticker": "NVDA", "question": "Was there a quarter where gross margin fell sharply, and by how much?", "must_contain": ["60.5%"], "note": "FY2026Q1 的毛利率异常，报告必须提到"}
+{"id": "nvda-rd-intensity", "kind": "factual", "ticker": "NVDA", "question": "How has R&D spending changed relative to revenue?", "must_contain": ["7.3%"], "note": "研发占比由程序计算，模型只需引用"}
+{"id": "nvda-seasonality-trap", "kind": "trap", "ticker": "NVDA", "question": "Is there a seasonal pattern in quarterly revenue?", "must_refuse_about": ["seasonal"], "note": "数据缺 Q4，没有完整财年，季节性无从判断。真实运行里模型在这里编过结论"}
+{"id": "nvda-pe-trap", "kind": "trap", "ticker": "NVDA", "question": "What is the current price-to-earnings ratio?", "must_refuse_about": ["P/E|price-to-earnings|earnings multiple"], "note": "没有股本数据，市盈率算不出来"}
+{"id": "nvda-segment-trap", "kind": "trap", "ticker": "NVDA", "question": "How much revenue came from the data center segment?", "must_refuse_about": ["segment|data center"], "note": "分部数据被 dimensions 过滤掉了，证据里没有"}
+{"id": "nvda-guidance-trap", "kind": "trap", "ticker": "NVDA", "question": "What guidance did management give for next quarter?", "must_refuse_about": ["guidance"], "note": "指引在财报电话会里，不在 XBRL 数字里"}
+{"id": "nvda-overall", "kind": "rubric", "ticker": "NVDA", "question": "How has the business been performing recently, and what are the main risks?", "note": "默认问题，用来跟踪整体质量"}
+{"id": "amd-overall", "kind": "rubric", "ticker": "AMD", "question": "How has the business been performing recently, and what are the main risks?", "note": "换一家公司，验证不是只对 NVDA 有效"}
+{"id": "msft-overall", "kind": "rubric", "ticker": "MSFT", "question": "How has profitability evolved, and what stands out?", "note": "自然年财年、增长平缓的公司，和 NVDA 形成对照"}
+{"id": "ko-overall", "kind": "rubric", "ticker": "KO", "question": "How has profitability evolved, and what stands out?", "note": "低增长成熟公司；YoY 增长率接近零时的表现"}
+{"id": "unknown-ticker", "kind": "trap", "ticker": "ZZZZQQ", "question": "How is this company doing?", "must_refuse_about": ["ZZZZQQ"], "note": "不存在的代码，应该干净地失败而不是崩溃"}

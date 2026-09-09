@@ -17,7 +17,7 @@ from tra.agent.evidence import EvidencePack
 from tra.graph import build_report, compile_graph
 from tra.graph.nodes import DEFAULT_PLAN, make_plan_node, make_research_node
 from tra.graph.state import Finding, SectionKind, SubQuestion
-from tra.report.schema import MetricPoint, MetricSeries, Source, SourceKind
+from tra.report.schema import ClaimKind, MetricPoint, MetricSeries, Source, SourceKind
 
 NOW = datetime(2026, 9, 7, tzinfo=UTC)
 GOOD_ID = "aaaaaaaaaa"
@@ -100,7 +100,10 @@ def test_planner_falls_back_instead_of_dying() -> None:
     """规划失败不该让整个 agent 瘫痪——退回固定大纲，质量下降但仍可用。"""
     node = make_plan_node(lambda _messages: "这不是 JSON")
     out = node(base_state())  # type: ignore[arg-type]
-    assert [SubQuestion.model_validate(q) for q in out["plan"]] == list(DEFAULT_PLAN)
+    plan = [SubQuestion.model_validate(q) for q in out["plan"]]
+
+    assert plan[0].key == "direct", "兜底大纲同样保证用户原问题被回答"
+    assert [q.key for q in plan[1:]] == [q.key for q in DEFAULT_PLAN][: len(plan) - 1]
     assert "fell back" in out["problems"][0]
 
 
@@ -112,6 +115,7 @@ def test_planner_without_evidence_does_not_plan() -> None:
 
 
 def test_planner_caps_the_number_of_sub_questions() -> None:
+    """上限包含那个必然存在的 direct 子问题。"""
     reply = json.dumps(
         {
             "sub_questions": [
@@ -217,8 +221,9 @@ def test_findings_from_every_researcher_are_merged() -> None:
     out = app.invoke(base_state(), {"configurable": {"thread_id": "t"}})
 
     findings = [Finding.model_validate(f) for f in out["findings"]]
-    assert len(findings) == 3
-    assert {f.dimension for f in findings} == {"growth", "margins", "risks"}
+    # 4 个而不是 3 个：用户原问题永远会被追加一个 direct researcher
+    assert len(findings) == 4
+    assert {f.dimension for f in findings} == {"direct", "growth", "margins", "risks"}
 
 
 def test_researchers_actually_run_in_parallel() -> None:
@@ -230,7 +235,7 @@ def test_researchers_actually_run_in_parallel() -> None:
     elapsed = time.monotonic() - started
 
     assert len(llm.threads) > 1, "所有调用都在同一个线程 = 其实是串行"
-    assert elapsed < 0.15 * 4, f"串行会至少要 4 × 0.15s，实际 {elapsed:.2f}s"
+    assert elapsed < 0.15 * 4, f"4 个 researcher 串行至少要 4 × 0.15s，实际 {elapsed:.2f}s"
 
 
 def test_report_groups_findings_into_sections() -> None:
@@ -262,11 +267,11 @@ def test_can_pause_after_planning_and_resume() -> None:
         config = {"configurable": {"thread_id": "hitl"}}
 
         paused = app.invoke(base_state(), config)
-        assert len(paused["plan"]) == 3
+        assert len(paused["plan"]) == 4  # 3 个规划出来的 + 1 个用户原问题
         assert not paused.get("findings"), "暂停时还没有人开始研究"
 
         resumed = app.invoke(None, config)
-        assert len(resumed["findings"]) == 3
+        assert len(resumed["findings"]) == 4
 
 
 def test_pause_without_checkpointer_is_refused() -> None:
@@ -516,3 +521,240 @@ def test_evidence_forbids_seasonality_claims_when_no_year_is_complete() -> None:
     )
     text = build_evidence(gappy)
     assert "SEASONALITY CANNOT BE ASSESSED" in text
+
+
+def test_missing_evidence_error_names_the_ticker() -> None:
+    """**报错必须指名道姓。**
+
+    "no evidence gathered" 读者无从判断是哪个标的出了问题；
+    带上代码，日志和评测都能直接定位。评测集里的 unknown-ticker
+    用例就是因为报错不带代码而误判失败的。
+    """
+    node = make_plan_node(lambda _m: "")
+    out = node({"ticker": "ZZZZQQ", "question": "q", "sources": [], "evidence": ""})  # type: ignore[arg-type]
+    assert out["plan"] == []
+    assert "ZZZZQQ" in out["problems"][0]
+
+
+# ------------------------------------------------------------------ 用户的问题不能被丢掉
+
+
+def test_the_users_own_question_is_always_researched() -> None:
+    """**沉默会被读成"答过了"。**
+
+    planner 会自然地把"数据回答不了"的问题整个丢掉——它觉得那不值得研究。
+    于是报告通篇讲营收趋势，只字不提用户问的市盈率，评测里四道陷阱题全挂。
+
+    这个保证做在代码里，不依赖模型听话。
+    """
+    reply = json.dumps(
+        {
+            "sub_questions": [
+                {"key": "growth", "section": "summary", "question": "how is revenue growing?"}
+            ]
+        }
+    )
+    node = make_plan_node(lambda _m: reply)
+    state = base_state() | {"question": "What is the current price-to-earnings ratio?"}
+    plan = [SubQuestion.model_validate(q) for q in node(state)["plan"]]  # type: ignore[arg-type]
+
+    assert plan[0].key == "direct"
+    assert plan[0].question == "What is the current price-to-earnings ratio?"
+    assert any(q.key == "growth" for q in plan), "原有子问题要保留"
+
+
+def test_the_direct_question_survives_a_planner_failure() -> None:
+    node = make_plan_node(lambda _m: "不是 JSON")
+    state = base_state() | {"question": "What guidance did management give?"}
+    plan = [SubQuestion.model_validate(q) for q in node(state)["plan"]]  # type: ignore[arg-type]
+
+    assert plan[0].question == "What guidance did management give?"
+
+
+def test_the_direct_question_is_not_duplicated() -> None:
+    from tra.graph.nodes import MAX_SUB_QUESTIONS, with_direct_question
+
+    plan = with_direct_question(
+        "q",
+        [SubQuestion(key=f"k{i}", section=SectionKind.RISKS, question=f"q{i}") for i in range(9)],
+    )
+    assert len(plan) == MAX_SUB_QUESTIONS
+    assert [q.key for q in plan].count("direct") == 1
+
+    twice = with_direct_question("q", with_direct_question("q", []))
+    assert [q.key for q in twice] == ["direct"]
+
+
+# ------------------------------------------------------------------ "我答不了"是一等公民
+
+
+def test_an_uncited_refusal_survives_and_does_not_kill_the_batch() -> None:
+    """**这条钉死了第二起同类事故。**
+
+    `_Claim.source_ids` 曾经写着 `min_length=1`。模型答不了问题时老老实实返回了
+    `"source_ids": []`，整个 _ResearchOut 解析失败，这个 researcher 全军覆没——
+    于是三道陷阱题的报告里，那句"我答不了"人间蒸发，读者只看到一份闭口不谈
+    市盈率的报告，会以为这个问题不重要。**schema 惩罚了唯一诚实的行为。**
+    """
+    reply = json.dumps(
+        {
+            "claims": [
+                {
+                    "text": "A P/E ratio cannot be computed: share count is not in the evidence.",
+                    "source_ids": [],
+                },
+                {"text": "Revenue reached 46,743 in FY2026Q2.", "source_ids": [GOOD_ID]},
+            ]
+        }
+    )
+    node = make_research_node(lambda _m: reply)
+    out = node(payload())  # type: ignore[arg-type]
+
+    findings = [Finding.model_validate(f) for f in out["findings"]]
+    assert len(findings) == 2, "没出处的那条不该拖垮同一批里的其他发现"
+    assert findings[0].kind is ClaimKind.LIMITATION
+    assert findings[0].source_ids == []
+    assert findings[1].kind is ClaimKind.FINDING
+
+
+def test_a_refusal_may_name_the_missing_periods() -> None:
+    """**期间标签不是数据点。**
+
+    "FY2024Q4 缺失"说的是"你问的哪一段"，没有断言任何数值。上一版把
+    `numbers_in` 直接套在零出处的判断上，2024 被当成一个数字，于是唯一合法的
+    那句"季节性无法评估"被当成编造数字丢掉——季节性那道题因此从通过变回失败。
+    """
+    reply = json.dumps(
+        {
+            "claims": [
+                {
+                    "text": (
+                        "Seasonality cannot be assessed: FY2024Q4 and FY2025Q4 "
+                        "are absent from the evidence."
+                    ),
+                    "source_ids": [],
+                }
+            ]
+        }
+    )
+    node = make_research_node(lambda _m: reply)
+    out = node(payload())  # type: ignore[arg-type]
+
+    findings = [Finding.model_validate(f) for f in out["findings"]]
+    assert len(findings) == 1, out["problems"]
+    assert findings[0].kind is ClaimKind.LIMITATION
+
+
+def test_an_uncited_claim_asserting_numbers_is_still_dropped() -> None:
+    """放宽的是"承认局限"，不是"免引用"。
+
+    **任何数字都必须有出处，没有例外。** 分类不看模型自称什么，
+    看"这句话里有没有数字"这个客观事实——模型没有动机把自己分类正确。
+    """
+    reply = json.dumps(
+        {"claims": [{"text": "Revenue reached 46,743 in FY2026Q2.", "source_ids": []}]}
+    )
+    node = make_research_node(lambda _m: reply)
+    out = node(payload())  # type: ignore[arg-type]
+
+    assert out["findings"] == []
+    assert "uncited claim asserting" in out["problems"][0]
+    assert "46743" in out["problems"][0], "丢弃原因要指名是哪个数字"
+
+
+def test_one_malformed_claim_does_not_take_the_others_with_it() -> None:
+    """claims 现在逐条校验。整批 `list[_Claim]` 已经害过两次了。"""
+    reply = json.dumps(
+        {
+            "claims": [
+                {"text": "", "source_ids": [GOOD_ID]},  # text 为空，非法
+                {"text": "Revenue reached 46,743 in FY2026Q2.", "source_ids": [GOOD_ID]},
+            ]
+        }
+    )
+    node = make_research_node(lambda _m: reply)
+    out = node(payload())  # type: ignore[arg-type]
+
+    assert len(out["findings"]) == 1
+    assert "unparseable" in out["problems"][0]
+
+
+def _limitation(section: SectionKind, text: str, dimension: str = "direct") -> dict:
+    return Finding(
+        section=section, text=text, source_ids=[], kind=ClaimKind.LIMITATION, dimension=dimension
+    ).model_dump(mode="json")
+
+
+def test_a_limitation_is_not_squeezed_out_by_the_section_cap() -> None:
+    """**封顶和去重是风格预算，limitation 是硬保证——预算不该吃掉保证。**
+
+    该被挤掉的是第六条同质发现，不是那句"你问的这件事我答不了"。
+    """
+    texts = [
+        "Gross margin reached 75.0% in FY2027Q2.",
+        "Cost of revenue climbed to 24,079 in FY2027Q2.",
+        "Net income was 59,688 in FY2027Q2.",
+        "Operating leverage improved through the period.",
+        "R&D as a share of sales fell to 7.3%.",
+        "Quarterly scale passed 96,221 for the first time.",
+    ]
+    findings = [_finding(SectionKind.FINANCIALS, t, "d") for t in texts]
+    findings.append(
+        _limitation(
+            SectionKind.FINANCIALS,
+            "Management guidance is not in the evidence; only historical filings were retrieved.",
+        )
+    )
+    report = build_report(base_state() | {"findings": findings})  # type: ignore[arg-type]
+    assert report is not None
+    financials = next(s for s in report.sections if s.kind == SectionKind.FINANCIALS)
+    kinds = [c.kind for c in financials.claims]
+    assert ClaimKind.LIMITATION in kinds, "limitation 被封顶吃掉了"
+    assert kinds[0] is ClaimKind.LIMITATION, "读者该先看到报告答不了什么"
+
+
+def test_claims_that_differ_only_in_their_numbers_are_not_duplicates() -> None:
+    """**数字才是这类句子的全部信息量，词集重合度对它不敏感。**
+
+    真实运行里这两条讲的是两个不同的区间，却因为句式几乎一样被当成重复丢了一条。
+    """
+    state = base_state() | {
+        "findings": [
+            _finding(
+                SectionKind.FINANCIALS,
+                "R&D as a percentage of revenue decreased from 12.7% to 7.3%.",
+                "rd",
+            ),
+            _finding(
+                SectionKind.FINANCIALS,
+                "R&D as a percentage of revenue decreased from 9.1% to 7.3%.",
+                "rd",
+            ),
+        ]
+    }
+    report = build_report(state)  # type: ignore[arg-type]
+    assert report is not None
+    financials = next(s for s in report.sections if s.kind == SectionKind.FINANCIALS)
+    assert len(financials.claims) == 2
+
+
+def test_naming_a_period_that_is_absent_is_not_an_unsupported_number() -> None:
+    """**一句"FY2027Q4 缺失"指认的恰恰是证据里没有的东西。**
+
+    要求它出现在证据里，等于要求"证明缺失"的句子先证明自己不缺失。
+    期间标签在整条流水线上都不算数值，这条守住这个一致性。
+    """
+    reply = json.dumps(
+        {
+            "claims": [
+                {
+                    "text": "FY2027Q4 has not been reported yet, so the fiscal year is incomplete.",
+                    "source_ids": [GOOD_ID],
+                }
+            ]
+        }
+    )
+    node = make_research_node(lambda _m: reply)
+    out = node(payload())  # type: ignore[arg-type]
+
+    assert len(out["findings"]) == 1, out["problems"]

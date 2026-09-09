@@ -26,7 +26,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
-from tra.report.schema import SectionKind
+from tra.report.schema import ClaimKind, SectionKind
 
 
 class SubQuestion(BaseModel):
@@ -46,7 +46,9 @@ class Finding(BaseModel):
 
     section: SectionKind
     text: str = Field(min_length=1)
-    source_ids: list[str] = Field(min_length=1, max_length=3)
+    source_ids: list[str] = Field(default_factory=list, max_length=3)
+    kind: ClaimKind = ClaimKind.FINDING
+    """FINDING 必须有出处，LIMITATION 必须没有——由 report.schema.Claim 兜底校验。"""
     confidence: Literal["high", "medium", "low"] = "medium"
     dimension: str = Field(default="", description="来自哪个子问题，便于追溯")
 

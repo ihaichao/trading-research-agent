@@ -19,10 +19,12 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
 from tra.agent.llm import LLMCallable
+from tra.agent.synthesize import numbers_in
 from tra.graph.nodes import gather, make_plan_node, make_research_node
 from tra.graph.state import Finding, ResearchState, SubQuestion
 from tra.report.schema import (
     Claim,
+    ClaimKind,
     MetricSeries,
     Report,
     ReportMeta,
@@ -62,13 +64,21 @@ def _is_duplicate(text: str, kept: list[str]) -> bool:
     告诉它们"别人在管什么"能减少但消不掉，因为 planner 拆出来的问题本身就交叉。
 
     所以在装配这一步兜底：**用词集重合度做去重，确定性，不花一次模型调用。**
+
+    但词集重合度对数字不敏感，而**数字才是这类句子的全部信息量**：
+    "R&D 占比从 12.7% 降到 7.3%" 和 "从 9.1% 降到 7.3%" 讲的是两个不同的区间，
+    句式却几乎一样，重合度轻松过 0.6——真实运行里第二条被当成重复丢掉了。
+    所以先比数字：**数字集不同，就不是重复，无论措辞多像。**
     """
     words = _tokens(text)
     if not words:
         return False
+    figures = numbers_in(text)
     for other in kept:
         other_words = _tokens(other)
         if not other_words:
+            continue
+        if figures != numbers_in(other):
             continue
         overlap = len(words & other_words) / min(len(words), len(other_words))
         if overlap >= DUPLICATE_THRESHOLD:
@@ -76,14 +86,17 @@ def _is_duplicate(text: str, kept: list[str]) -> bool:
     return False
 
 
-def _finding_sort_key(finding: Finding) -> tuple[int, str, str]:
+def _finding_sort_key(finding: Finding) -> tuple[int, int, str, str]:
     """给发现一个稳定顺序。
 
     并行节点的返回顺序取决于谁先跑完，**同样的输入会产出顺序不同的报告**。
     评测集要比较两次运行的差异，就必须先消掉这个随机性。
+
+    limitation 排在本段最前：读者先知道这份报告答不了什么，再看它答了什么。
     """
     section_index = SECTION_ORDER.index(finding.section) if finding.section in SECTION_ORDER else 99
-    return (section_index, finding.dimension, finding.text)
+    kind_index = 0 if finding.kind is ClaimKind.LIMITATION else 1
+    return (section_index, kind_index, finding.dimension, finding.text)
 
 
 def fan_out(state: ResearchState) -> list[Send]:
@@ -129,24 +142,46 @@ def build_report(state: ResearchState, *, started: datetime | None = None) -> Re
     started = started or datetime.now(UTC)
     by_section: dict[SectionKind, list[Claim]] = {}
     kept_text: dict[SectionKind, list[str]] = {}
-    dropped = 0
+    kept_limitations: list[str] = []
+    dropped: list[str] = []
 
     for finding in sorted(findings, key=_finding_sort_key):
         seen = kept_text.setdefault(finding.section, [])
-        if len(seen) >= MAX_CLAIMS_PER_SECTION or _is_duplicate(finding.text, seen):
-            dropped += 1
+        # **封顶和去重是风格预算，limitation 是硬保证——预算不该吃掉保证。**
+        # 用户问了什么、报告答不了什么，永远要出现在报告里；挤掉的应该是
+        # 第六条同质发现，而不是那句"我答不了"。
+        if finding.kind is not ClaimKind.LIMITATION:
+            if len(seen) >= MAX_CLAIMS_PER_SECTION:
+                dropped.append(f"{finding.dimension}: over section cap — {finding.text[:80]}")
+                continue
+            if _is_duplicate(finding.text, seen):
+                dropped.append(f"{finding.dimension}: duplicate — {finding.text[:80]}")
+                continue
+        elif _is_duplicate(finding.text, kept_limitations):
+            # 两个 researcher 都答不了同一件事时，说一次就够。
+            dropped.append(f"{finding.dimension}: duplicate limitation — {finding.text[:80]}")
             continue
-        seen.append(finding.text)
+        if finding.kind is ClaimKind.LIMITATION:
+            # 不计入 seen：limitation 不占 finding 的名额，也不参与 finding 的去重。
+            kept_limitations.append(finding.text)
+        else:
+            seen.append(finding.text)
         by_section.setdefault(finding.section, []).append(
             Claim(
                 text=finding.text,
                 source_ids=finding.source_ids,
+                kind=finding.kind,
                 confidence=finding.confidence,
             )
         )
 
     if dropped:
-        log.info("[assemble] 去重与封顶丢弃 %d 条重复/超量的判断", dropped)
+        log.info("[assemble] 去重与封顶丢弃 %d 条重复/超量的判断", len(dropped))
+        # **丢弃必须留痕。** state 在图跑完之后就是一个普通 dict；把原因补记进
+        # problems，评测和 demo 才能看见"到底丢了哪一条"，而不只是丢了几条。
+        problems = state.get("problems")
+        if isinstance(problems, list):
+            problems.extend(dropped)
 
     sections: list[Section] = []
     for kind in SECTION_ORDER:

@@ -53,23 +53,39 @@ function ClaimList({
   if (claims.length === 0) return null;
   return (
     <ul className="space-y-2">
-      {claims.map((claim, i) => (
-        <li key={i} className="flex gap-2 text-[15px] leading-relaxed">
-          <span
-            className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]"
-            aria-hidden
-          />
-          <span>
-            {claim.text}
-            <Cite ids={claim.source_ids} index={index} onSelect={onSelect} />
-            {claim.confidence === "low" && (
-              <span className="ml-2 rounded px-1 text-[11px] text-[var(--muted)] ring-1 ring-[var(--line)]">
-                low confidence
-              </span>
-            )}
-          </span>
-        </li>
-      ))}
+      {claims.map((claim, i) => {
+        // limitation 讲的是「这份证据回答不了什么」，它没有出处可引。
+        // **必须和有出处的判断长得不一样**，否则读者会把它当成一条漏引用的论断。
+        const isLimitation = claim.kind === "limitation";
+        return (
+          <li key={i} className="flex gap-2 text-[15px] leading-relaxed">
+            <span
+              className={
+                isLimitation
+                  ? "mt-2 h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-[var(--muted)]"
+                  : "mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]"
+              }
+              aria-hidden
+            />
+            <span className={isLimitation ? "text-[var(--muted)]" : undefined}>
+              {isLimitation && (
+                <span className="mr-2 rounded px-1 text-[11px] uppercase tracking-wide ring-1 ring-[var(--line)]">
+                  not answerable
+                </span>
+              )}
+              {claim.text}
+              {!isLimitation && (
+                <Cite ids={claim.source_ids ?? []} index={index} onSelect={onSelect} />
+              )}
+              {!isLimitation && claim.confidence === "low" && (
+                <span className="ml-2 rounded px-1 text-[11px] text-[var(--muted)] ring-1 ring-[var(--line)]">
+                  low confidence
+                </span>
+              )}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

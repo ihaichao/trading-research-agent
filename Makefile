@@ -6,7 +6,7 @@
 API := apps/api
 WEB := apps/web
 
-.PHONY: help setup check clean \
+.PHONY: help setup check clean eval eval-judge \
         api-setup api-fmt api-lint api-type api-test api-check \
         web-setup web-dev web-lint web-type web-build web-check \
         schema
@@ -15,6 +15,8 @@ help:
 	@echo "setup       安装前后端依赖"
 	@echo "check       前后端全部检查（等同 CI）"
 	@echo "schema      从 Pydantic schema 重新生成契约产物"
+	@echo "eval        跑评测集（确定性指标，免费）"
+	@echo "eval-judge  跑评测集 + LLM 评判（花钱）"
 	@echo "api-*       后端：fmt lint type test check"
 	@echo "web-*       前端：dev lint type build check"
 
@@ -45,6 +47,15 @@ api-test:
 	cd $(API) && uv run pytest -m "not network"
 
 api-check: api-lint api-type api-test
+
+# ---------------------------------------------------------------- 评测
+# 确定性指标：不调模型、免费、可以进 CI
+eval:
+	cd $(API) && uv run python examples/eval_demo.py
+
+# 加上 LLM 评判：花钱、慢，改动前后各跑一次做对比
+eval-judge:
+	cd $(API) && uv run python examples/eval_demo.py --judge
 
 # ---------------------------------------------------------------- 契约
 # 改过 apps/api/src/tra/report/schema.py 之后必须跑这个，

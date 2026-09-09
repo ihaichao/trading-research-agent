@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from tra.report.schema import MetricSeries, Report, Section, Source
+from tra.report.schema import ClaimKind, MetricSeries, Report, Section, Source
 
 
 def citation_index(report: Report) -> dict[str, int]:
@@ -60,6 +60,10 @@ def render_section(section: Section, index: dict[str, int]) -> list[str]:
         lines += [section.narrative_md, ""]
 
     for claim in section.claims:
+        if claim.kind is ClaimKind.LIMITATION:
+            # 没有出处的行必须一眼看出是"答不了"，否则读者会当成一条漏引用的论断。
+            lines.append(f"- *Not answerable from this evidence:* {claim.text}")
+            continue
         marks = "".join(f"[^{index[sid]}]" for sid in claim.source_ids if sid in index)
         flag = " *(low confidence)*" if claim.confidence == "low" else ""
         lines.append(f"- {claim.text}{marks}{flag}")

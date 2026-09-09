@@ -3,6 +3,7 @@
 from tra.report.render import render_markdown
 from tra.report.schema import (
     Claim,
+    ClaimKind,
     Confidence,
     MetricPoint,
     MetricSeries,
@@ -17,6 +18,7 @@ from tra.report.schema import (
 
 __all__ = [
     "Claim",
+    "ClaimKind",
     "Confidence",
     "MetricPoint",
     "MetricSeries",

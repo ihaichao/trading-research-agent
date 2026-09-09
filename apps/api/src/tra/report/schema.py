@@ -91,12 +91,44 @@ class Source(BaseModel):
     retrieved_at: AwareDatetime
 
 
+class ClaimKind(StrEnum):
+    """What a claim asserts — and therefore what "checkable" means for it.
+
+    A FINDING says something about the company; it is checkable by opening its
+    sources. A LIMITATION says something about the *evidence set* — "a P/E ratio
+    cannot be computed: share count is not in the evidence". It has nothing to
+    cite by construction, and demanding a citation for it is what pushed the
+    model into either inventing an id or returning none at all.
+    """
+
+    FINDING = "finding"
+    LIMITATION = "limitation"
+
+
 class Claim(BaseModel):
     """A single attributable statement. The atom of the whole report."""
 
     text: str = Field(min_length=1)
-    source_ids: list[str] = Field(min_length=1, description="At least one. No exceptions.")
+    source_ids: list[str] = Field(
+        default_factory=list,
+        description="At least one for a finding. Exactly none for a limitation.",
+    )
+    kind: ClaimKind = ClaimKind.FINDING
     confidence: Confidence = "medium"
+
+    @model_validator(mode="after")
+    def _citations_match_kind(self) -> Claim:
+        """**"每句都有出处"这条承诺没有松动，只是被说清楚了。**
+
+        它管的是"关于公司的论断"。"这份证据回答不了这个问题"不是关于公司的
+        论断，它没有出处可引——以前的 schema 不区分这两者，于是把唯一诚实的
+        回答判成了非法输入。
+        """
+        if self.kind is ClaimKind.FINDING and not self.source_ids:
+            raise ValueError("a finding must cite at least one source")
+        if self.kind is ClaimKind.LIMITATION and self.source_ids:
+            raise ValueError("a limitation states what the evidence lacks; it cites nothing")
+        return self
 
 
 class MetricPoint(BaseModel):
